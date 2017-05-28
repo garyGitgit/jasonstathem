@@ -256,6 +256,7 @@ public class MainActivity extends UnityPlayerActivity {
                             break;
                         case "weather":
                             //http://warguss.blogspot.kr/2016/01/openweather-2.html
+
                             Initialize();
                             break;
                     }
@@ -303,6 +304,8 @@ public class MainActivity extends UnityPlayerActivity {
 
             mData = mData + "\r\n" + "----------------------------------------------" + "\r\n";
         }
+        UnityPlayer.UnitySendMessage(UnityObjName, UnitySTTresult,("Max: " + mWeatherInfomation.get(0).getTemp_Max() + "℃"
+                +  " /Min: " + mWeatherInfomation.get(0).getTemp_Min() + "℃"));
         return mData;
     }
 
@@ -317,7 +320,8 @@ public class MainActivity extends UnityPlayerActivity {
 
     public void DataToInformation()
     {
-        for(int i = 0; i < mWeatherData.size(); i++)
+        //for(int i = 0; i < mWeatherData.size(); i++)
+        for(int i = 0; i < 1; i++)
         {
             mWeatherInfomation.add(new WeatherInfo(
                     String.valueOf(mWeatherData.get(i).get("weather_Name")),

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 4a8d989ca4b0c450fb2e89ec0b745854
+timeCreated: 1495770711
+licenseType: Free
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences:
+  - textmesh: {instanceID: 0}
+  - blueboy: {fileID: 100158, guid: 4eccc868b832eaf4688e595f1100393e, type: 3}
+  - rain: {fileID: 160098, guid: 69b40ef7ee16c834c844b3fa26e0fdda, type: 2}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
