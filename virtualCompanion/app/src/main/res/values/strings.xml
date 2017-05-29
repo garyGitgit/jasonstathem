@@ -1,3 +1,17 @@
 <resources>
     <string name="app_name">UnityAndroid</string>
+
+
+    <!--한국어 -->
+    <string name="voice_call_ask1">누구한테 전화를 거실건가요</string>
+    <string name="voice_msg_ask1">누구한테 문자를 보내실건가요?</string>
+    <string name="voice_msg_ask2">뭐라고 보낼까요?</string>
+    <string name="voice_wait">잠시만 기다려 주세요</string>
+
+    <!--영어 -->
+    <!--<string name="voice_call_ask1">Who do you want to call?</string>-->
+    <!--<string name="voice_msg_ask1">Who do you want to send message?</string>-->
+    <!--<string name="voice_msg_ask2">What message should I send?</string>-->
+    <!--<string name="voice_wait">wait, please</string>-->
+
 </resources>

@@ -29,23 +29,16 @@ dependencies {
     compile 'com.android.support.constraint:constraint-layout:1.0.2'
     testCompile 'junit:junit:4.12'
     compile files('libs/classes.jar')
-    // add at the end of the build.gradle file
-    //    task exportJar(type: Copy) {
-    //        //release 는 없고 default 만 있음
-    //        from('build/intermediates/bundles/default/classes.jar')
-    //        into('release/')
-    //        into('/Users/macbook/Desktop/2017-1/학부생연구원/project/Unity/New Unity Project/Assets/Plugin/Android')
-    //        //rename('classes.jar', 'AddComponentNative.jar')
-    //        rename('classes.jar', 'forUnity.jar')
-    //    }
+
 }
 task deleteOldJar(type: Delete) {
     delete 'release/forUnity.jar'
 }
 task exportJar(type: Copy) {
-    from('build/intermediates/bundles/release/')
+    from('build/intermediates/bundles/default/')
     into('release/') // 요기 경로는 APP아래 build폴더입니다.
     //into('C:\\Users\\OneStar\\Desktop\\SmartSecretary\\SmartSecretary\\Assets\\Plugins\\Android');
+    into('/Users/macbook/Desktop/2017-1/학부생연구원/project/jasonstathem/SmartSecretary_v2/SmartSecretary/Assets/Plugins/Android')
     include('classes.jar')
     rename('classes.jar', 'forUnity.jar')
 }
