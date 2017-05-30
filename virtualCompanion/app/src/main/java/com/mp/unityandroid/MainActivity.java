@@ -52,66 +52,72 @@ public class MainActivity extends UnityPlayerActivity {
     // 음성인식 관련
     private SpeechRecognizer mRecognizer;
     private static Context context;
-    private String recogLang = "en-US";
+
+    // "en-US" : 미국영어 / "ko" : 한국어 /  "zh-CN" : 중국어 /  "ja" : 일본어
+    private String recogLang = "en-US"; //디폴트 언어
 
     //weather API
     public static final int THREAD_HANDLER_SUCCESS_INFO = 1;
 
+    //날씨 매니저
     ForeCastManager mForeCast;
 
-    //gps 정보
+    //gps 매니저
     LocationManager locationManager;
 
-
-    String lon = "128.3910799"; // 좌표 설정
-    String lat = "36.1444292";  // 좌표 설정
     MainActivity mThis;
     ArrayList<ContentValues> mWeatherData;
     ArrayList<WeatherInfo> mWeatherInfomation;
 
-    //텍스트 음성 변환 변수
+    //텍스트 음성 변환
     private TextToSpeech myTTS;
 
 
-    //현재 커맨드 상태를 알려주는 변수
+    //현재 커맨드 상태
     /*
-    * 0 : 처음 청취하는 상황
-    * 1 : 전화 대상을 청취하는 상황
-    * 2 : 메시지 대상을 청취하는 상황
-    * 3 : 메시지 내용을 청취하는 상황
-    *
+    * 0 : 처음 청취하는 상태
+    * 1 : 전화 대상을 청취 상태
+    * 2 : 메시지 대상을 청취 상태
+    * 3 : 메시지 내용을 청취 상태
     * */
 
     int status = 0;
-    String targetContact = "";
 
+    //전화 / 메시지 할 대상
+    String targetContact = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        //UI 가 없음
         //setContentView(R.layout.activity_main);
-        Toast.makeText(getApplicationContext(), "onCreate", Toast.LENGTH_SHORT).show();
+        Toast.makeText(getApplicationContext(), "앱을 시작합니다", Toast.LENGTH_SHORT).show();
 
         //핸들러 붙이고
         mHandler = new msgHandle();
 
-        //음성인식 리스너등록합니다.
+        //음성인식 리스너등록
         context = getApplicationContext();
         if (mRecognizer == null) {
             mRecognizer = SpeechRecognizer.createSpeechRecognizer(context);
             mRecognizer.setRecognitionListener(listener);
         }
-        Log.e("TAGGER", "OnCreate");
+        //Log.e("TAGGER", "OnCreate");
 
         //TTS 를 등록한다
         myTTS = new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
             @Override
             public void onInit(int status) {
                 if (status != TextToSpeech.ERROR) {
-//                    myTTS.setLanguage(Locale.ENGLISH); //언어 설정 영어
+                    //myTTS.setLanguage(Locale.ENGLISH); //언어 설정 영어
                     myTTS.setLanguage(Locale.KOREAN); //언어 설정 한국어
-//                    myTTS.setPitch(0.5f);
-                    myTTS.setSpeechRate(1.0f); //말하기 속도
+
+                    //목소리 톤 설정 - 0 에 가까울수록 저음이 나는데 듣기 이상함
+                    //myTTS.setPitch(0.5f);
+
+                    //말하기 속도 0에 가까울수록 느림
+                    myTTS.setSpeechRate(1.0f);
                 }
             }
         });
@@ -127,7 +133,9 @@ public class MainActivity extends UnityPlayerActivity {
             Location location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
             Log.e("gary", "Latitude : " + Double.toString(location.getLatitude()));
             Log.e("gary", "Longitude : " + Double.toString(location.getLongitude()));
-            //locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 0, locationListener);
+
+
+
 
             //도시 알아오기
             List<Address> addresses;
@@ -152,26 +160,27 @@ public class MainActivity extends UnityPlayerActivity {
         }
 
 
+        //TODO : onLocationChanged 를 사용할 수 있는 함수인데 작동을 안해서 일단 킵
+        //locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 0, locationListener);
         //첫번째 줄에서 에러발생
-//        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-//            // TODO: Consider calling
-//            //    ActivityCompat#requestPermissions
-//            // here to request the missing permissions, and then overriding
-////            ActivityCompat.requestPermissions(this,
-////                    new String[]{Manifest.permission. ACCESS_FINE_LOCATION},
-////                    99);
-////               public void onRequestPermissionsResult(int requestCode, String[] permissions,
-////                                                      int[] grantResults)
-//            // to handle the case where the user grants the permission. See the documentation
-//            // for ActivityCompat#requestPermissions for more details.
-//            Toast.makeText(getApplicationContext(), "GPS 권한 설정이 필요합니다", Toast.LENGTH_SHORT).show();
-//            return;
-//        }
-        //requestLocationUpdates : GPS 제공자, 업데이트 주기 milsec, 업데이트 거리 미터
+
+        /*if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+//            ActivityCompat.requestPermissions(this,
+//                    new String[]{Manifest.permission. ACCESS_FINE_LOCATION},
+//                    99);
+//               public void onRequestPermissionsResult(int requestCode, String[] permissions,
+//                                                      int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            Toast.makeText(getApplicationContext(), "GPS 권한 설정이 필요합니다", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        requestLocationUpdates : //GPS 제공자, 업데이트 주기 milsec, 업데이트 거리 미터*/
 
     }
-
-
 
 
     class msgHandle extends Handler{
@@ -198,9 +207,12 @@ public class MainActivity extends UnityPlayerActivity {
         }
     }
 
-    // 유니티에서 호출할 함수입니다.
+    /**
+     * 유니티에서 호출
+     * @param Lang : 음성인식 언어 (cf. 한국어로 해도 영어 발음하면 영어로 인식한다. 하지만 정확도는 약간 떨어짐)
+     */
     public void StartSpeechReco(String Lang) {
-    // "en-US" : 미국영어 / "ko" : 한국어 /  "zh-CN" : 중국어 /  "ja" : 일본어
+
         recogLang = Lang;
         EndSpeechReco();
         //핸들러에 시작을 알리고 있습니다.
@@ -214,7 +226,11 @@ public class MainActivity extends UnityPlayerActivity {
         }
     }
 
-    // 실제 음성인식을 호출합니다. recogLang은 음성인식할 언어로 주시면됩니다.
+    // 실제 음성인식을 호출
+
+    /**
+     * 실제 음성인식을 호출
+     */
     public void StartSpeechRecoService(){
         Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH); // 음성인식
         i.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());
@@ -222,7 +238,10 @@ public class MainActivity extends UnityPlayerActivity {
         mRecognizer.startListening(i);
     }
 
-    //메세지 초기화
+
+    /**
+     * 메시지 초기화
+     */
     public void EndSpeechReco() {
         this.mHandler.removeMessages(STTREADY);
         this.mHandler.removeMessages(STTEND);
@@ -230,6 +249,9 @@ public class MainActivity extends UnityPlayerActivity {
     }
 
 
+    /**
+     * 음성인식 리스너
+     */
     private RecognitionListener listener = new RecognitionListener() {
         @Override
         public void onReadyForSpeech(Bundle bundle) {
@@ -291,26 +313,29 @@ public class MainActivity extends UnityPlayerActivity {
             ArrayList matches = bundle.getStringArrayList("results_recognition");
             if(matches != null){
                 try{
-                    UnityPlayer.UnitySendMessage(UnityObjName, UnitySTTresult,((String)matches.get(0)));
-
                     String userMessage = (String)matches.get(0);
 
-                    //두번째 이상의 청취
+                    //유니티 UI 에 텍스트를 띄워줌
+                    UnityPlayer.UnitySendMessage(UnityObjName, UnitySTTresult,userMessage);
+
+                    //두 번째 이상의 음성인식인지 확인
                     switch (status){
-                        //전화 또는 메시지 대상을 청취할 때
+                        //전화 대상을 청취할 때
                         case 1:
                             //대상을 주소록에서 찾는다
                             targetContact = getPhoneNumber(userMessage, getApplicationContext());
+
                             //주소록에서 찾을 수 없음
                             if(targetContact.equals("Unsaved")){
                                 String jasonReply = userMessage + "를 찾을 수 없습니다";
-                                //음성으로 알리기
+
+                                //음성 전달
                                 jasonSays(jasonReply);
-                                //텍스트로 알리기
+                                //유니티로 텍스트 날리기
                                 UnityPlayer.UnitySendMessage(UnityObjName, UnityMsg, jasonReply);
                             }
+                            //주소록에서 찾을 수 있음
                             else{
-                                Log.e("Jason", targetContact);
                                 //검색한 연락처를 통해서 전화를 건다
                                 Intent intent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:"+targetContact));
                                 try {
@@ -319,21 +344,23 @@ public class MainActivity extends UnityPlayerActivity {
                                     e.printStackTrace();
                                 }
                             }
+                            //완료했으므로 상태를 초기로 만든다
                             status = 0;
                             return;
+                        //메시지 대상을 청취할 떄
                         case 2:
                             targetContact = getPhoneNumber(userMessage, getApplicationContext());
                             //주소록에서 찾을 수 없음
                             if(targetContact.equals("Unsaved")){
                                 String jasonReply = userMessage + "를 찾을 수 없습니다";
-                                //음성으로 알리기
+                                //음성 전달
                                 jasonSays(jasonReply);
-                                //텍스트로 알리기
+                                //유니티로 텍스트 날리기
                                 UnityPlayer.UnitySendMessage(UnityObjName, UnityMsg, jasonReply);
+                                //완료했으므로 상태를 초기로 만든다
                                 status = 0;
                             }
                             else{
-                                Log.e("Jason", targetContact);
                                 jasonSays("뭐라고 보낼까요?");
                                 //3초 후 다시 음성인식을 한다
                                 mHandler.postDelayed(new Runnable() {
@@ -345,6 +372,7 @@ public class MainActivity extends UnityPlayerActivity {
                                 status = 3;
                             }
                             return;
+                        //문자 내용 청취할 때
                         case 3:
                             PendingIntent sentIntent = PendingIntent.getBroadcast(MainActivity.this, 0, new Intent("SMS_SENT_ACTION"), 0);
                             PendingIntent deliveredIntent = PendingIntent.getBroadcast(MainActivity.this, 0, new Intent("SMS_DELIVERED_ACTION"), 0);
@@ -404,12 +432,14 @@ public class MainActivity extends UnityPlayerActivity {
                     //첫번째 청취
                     switch(userMessage){
                         case "전화":
-                            //1차적으로 누구에게 보낼 것인지 물어본다
+                            //string res 에서 가져오면 에러가 발생한다
 //                            Log.e("Jason", getResources().getString(R.string.voice_call_ask1));
                             jasonSays("누구에게 전화를 거실겁니까?");
+
+                            //전화 대상 청취모드로 바꿈
                             status = 1;
 
-                            //2초 후 다시 음성인식을 한다
+                            //3초 후 다시 음성인식
                             mHandler.postDelayed(new Runnable() {
                                 @Override
                                 public void run() {
@@ -420,7 +450,8 @@ public class MainActivity extends UnityPlayerActivity {
                         case "메시지":
                             jasonSays("누구에게 메시지를 보내실겁니까?");
                             status = 2;
-                            //다시 음성인식을 한다
+
+                            //메시지 전송 대상 청취모드로 바꿈
                             mHandler.postDelayed(new Runnable() {
                                 @Override
                                 public void run() {
@@ -428,12 +459,12 @@ public class MainActivity extends UnityPlayerActivity {
                                 }
                             }, 3000);
                             break;
+                        //TODO : 날씨 정보를 가져와서 음성으로 알려줘야 함
                         case "날씨":
                             //http://warguss.blogspot.kr/2016/01/openweather-2.html
                             Initialize();
                             break;
                     }
-
                 }
                 catch (Exception e){
                     e.printStackTrace();
@@ -453,7 +484,10 @@ public class MainActivity extends UnityPlayerActivity {
     }; // ★ 음성인식 리스너 여기까지입니다.
 
 
-    //TTS
+    /**
+     * 음성 변환
+     * @param txt : 음성으로 변환할 string
+     */
     private void jasonSays(String txt){
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             ttsGreater21(txt);
@@ -478,12 +512,12 @@ public class MainActivity extends UnityPlayerActivity {
 
     /**
      * 연락처 검색
-     * @param name
+     * @param name : 검색어
      * @param context
-     * @return
+     * @return : 결과값 (찾으면 전화번호를 string 으로, 못 찾으면 Unsaved )
      */
     public String getPhoneNumber(String name, Context context) {
-        String ret = null;
+        String searchResult = null;
         String selection = ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME+" like'%" + name +"%'";
         String[] projection = new String[] { ContactsContract.CommonDataKinds.Phone.NUMBER};
         Cursor c = context.getContentResolver().query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
@@ -491,23 +525,34 @@ public class MainActivity extends UnityPlayerActivity {
         if(c == null) return null;
 
         if (c.moveToFirst()) {
-            ret = c.getString(0);
+            searchResult = c.getString(0);
         }
         c.close();
-        if(ret==null)
-            ret = "Unsaved";
-        return ret;
+        if(searchResult==null)
+            searchResult = "Unsaved";
+        return searchResult;
     }
 
+
+    /**
+     * 날씨 모듈 초기화
+     */
     public void Initialize()
     {
         mWeatherInfomation = new ArrayList<>();
         mThis = this;
         //위도와 경도를 설정
-        //mForeCast = new ForeCastManager(lon,lat, mThis);
         mForeCast = new ForeCastManager(Double.toString(MyLocationListener.getLongtitude()),Double.toString(MyLocationListener.getLatitude()),mThis);
         mForeCast.run();
     }
+
+    /**
+     * 날씨 정보에 대한 결과값 출력
+     * clear sky - 날씨 상태
+     * cloud amount - 구름의 양
+     * min, max temperature - 최저, 최저 기온
+     * @return 결과값
+     */
     public String PrintValue()
     {
         String mData = "";
@@ -538,6 +583,9 @@ public class MainActivity extends UnityPlayerActivity {
         }
     }
 
+    /**
+     * 날씨 데이터를 가져옴
+     */
     public void DataToInformation()
     {
         for(int i = 0; i < mWeatherData.size(); i++)
@@ -562,6 +610,7 @@ public class MainActivity extends UnityPlayerActivity {
             ));
         }
     }
+
     public Handler handler = new Handler(){
         @Override      public void handleMessage(Message msg) {
             super.handleMessage(msg);
