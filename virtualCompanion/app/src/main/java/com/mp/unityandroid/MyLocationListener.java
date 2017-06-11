@@ -7,7 +7,6 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.os.Bundle;
 import android.util.Log;
-import android.widget.Toast;
 
 import java.io.IOException;
 import java.util.List;
@@ -34,7 +33,7 @@ public class MyLocationListener implements LocationListener {
 
     @Override
     public void onLocationChanged(Location loc) {
-        Toast.makeText(context, "LocationChanged", Toast.LENGTH_SHORT).show();
+        //Toast.makeText(context, "LocationChanged", Toast.LENGTH_SHORT).show();
         Log.e("gary", "onloactionchanged");
         //context 가 없으면 실행시키지 않는다
         if (context == null) return;
@@ -79,7 +78,7 @@ public class MyLocationListener implements LocationListener {
         String s = longitude + "\n" + latitude + "\n\nMy Current City is: "
                 + cityName;
         Log.e("gary", s);
-        Toast.makeText(context, s, Toast.LENGTH_SHORT).show();
+        //Toast.makeText(context, s, Toast.LENGTH_SHORT).show();
     }
 
 
