@@ -40,10 +40,10 @@ public class MyLocationListener implements LocationListener {
         if (context == null) return;
 
         //위도와 경도를 가져온다
-        String longitude = "Longitude: " + loc.getLongitude();
-        Log.e("gary", longitude);
-        String latitude = "Latitude: " + loc.getLatitude();
-        Log.e("gary", latitude);
+        double longitude = loc.getLongitude();
+        //Log.e("gary", longitude);
+        double latitude = loc.getLatitude();
+        //Log.e("gary", latitude);
 
         /*------- To get city name from coordinates -------- */
 //        String cityName = null;
@@ -69,7 +69,7 @@ public class MyLocationListener implements LocationListener {
         String cityName = null;
         Geocoder gcd = new Geocoder(context, Locale.getDefault());
         try {
-            addresses = gcd.getFromLocation(Double.parseDouble(latitude),
+            addresses = gcd.getFromLocation(latitude,
                     longtitude, 1);
             if (addresses.size() > 0) {
                 cityName = addresses.get(0).getLocality();
