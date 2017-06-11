@@ -44,22 +44,18 @@ public class SpeechRecognition : MonoBehaviour {
         }
     }
 
+    //Speech Recognition result
 	void STTresult(string result) {
-
-        if (result.StartsWith("weather/", StringComparison.InvariantCultureIgnoreCase)){
-            splitWeather(result);
-        }
-        else
-        {
-            makelog(result);
-        }
-
+        showText(result);
     }
+    //recevie UnitySendMessage from Android
 	void androidMSG(string msg) {
-		//makelog("LOG : " + msg);
+		if (msg.StartsWith("weather/", StringComparison.InvariantCultureIgnoreCase)){
+            splitWeather(msg);
+        }
 	}
-	void makelog(string logmsg){
-		print ("MAKELOG: "+logmsg);
+	void showText(string logmsg){
+		print ("LOG: "+logmsg);
         textmesh.text = logmsg;
     }
 
@@ -88,17 +84,17 @@ public class SpeechRecognition : MonoBehaviour {
 
         if (info[2].Contains(" rain"))
         {
-            makelog("It's raining");
+			showText("It's raining");
             Rain(info[2]);
         }
         else if (Int32.Parse(info[4]) >= 20)
         {
-            makelog("It's cloudy");
+			showText("It's cloudy");
             Cloud(Int32.Parse(info[4]));
         }
         else
         {
-            makelog("It's sunny");
+			showText("It's sunny");
             Sunny((Int32.Parse(info[8]) + Int32.Parse(info[9])) / 2);
         }
         

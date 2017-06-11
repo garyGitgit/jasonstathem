@@ -26,6 +26,7 @@ public class MyAIListener implements AIListener {
 
     @Override
     public void onResult(AIResponse response) {
+
         Log.i(TAG, "Received success response");
 
         // this is example how to get different parts of result object

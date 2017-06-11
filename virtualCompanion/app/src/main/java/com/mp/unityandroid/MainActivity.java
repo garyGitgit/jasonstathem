@@ -1,27 +1,17 @@
 package com.mp.unityandroid;
 
-import android.annotation.TargetApi;
-import android.app.Activity;
-import android.app.PendingIntent;
-import android.content.BroadcastReceiver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
-import android.database.Cursor;
 import android.location.LocationManager;
-import android.net.Uri;
 import android.os.AsyncTask;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.provider.ContactsContract;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.speech.tts.TextToSpeech;
-import android.telephony.SmsManager;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -29,13 +19,11 @@ import com.unity3d.player.UnityPlayer;
 import com.unity3d.player.UnityPlayerActivity;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Locale;
 
-import ai.api.AIDataService;
-import ai.api.AIServiceException;
 import ai.api.AIConfiguration;
+import ai.api.AIDataService;
 import ai.api.AIService;
+import ai.api.AIServiceException;
 import ai.api.model.AIRequest;
 import ai.api.model.AIResponse;
 
@@ -95,6 +83,10 @@ public class MainActivity extends UnityPlayerActivity{
     AIDataService aiDataService;
     AIRequest aiRequest;
 
+    //JasonBrain
+    JasonBrain jasonBrain;
+    Jason jason;
+
 
 
     @Override
@@ -116,22 +108,22 @@ public class MainActivity extends UnityPlayerActivity{
         }
         //Log.e("TAGGER", "OnCreate");
 
-        //TTS 를 등록한다
-        myTTS = new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
-            @Override
-            public void onInit(int status) {
-                if (status != TextToSpeech.ERROR) {
-                    //myTTS.setLanguage(Locale.ENGLISH); //언어 설정 영어
-                    myTTS.setLanguage(Locale.KOREAN); //언어 설정 한국어
-
-                    //목소리 톤 설정 - 0 에 가까울수록 저음이 나는데 듣기 이상함
-                    //myTTS.setPitch(0.5f);
-
-                    //말하기 속도 0에 가까울수록 느림
-                    myTTS.setSpeechRate(1.0f);
-                }
-            }
-        });
+//        //TTS 를 등록한다
+//        myTTS = new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
+//            @Override
+//            public void onInit(int status) {
+//                if (status != TextToSpeech.ERROR) {
+//                    //myTTS.setLanguage(Locale.ENGLISH); //언어 설정 영어
+//                    myTTS.setLanguage(Locale.ENGLISH); //언어 설정 한국어
+//
+//                    //목소리 톤 설정 - 0 에 가까울수록 저음이 나는데 듣기 이상함
+//                    //myTTS.setPitch(0.5f);
+//
+//                    //말하기 속도 0에 가까울수록 느림
+//                    myTTS.setSpeechRate(1.0f);
+//                }
+//            }
+//        });
 
 
         //위치정보를 가져온다
@@ -164,38 +156,20 @@ public class MainActivity extends UnityPlayerActivity{
             //요청할 변수 객체화
             aiDataService = new AIDataService(getApplicationContext(), config);
             aiRequest = new AIRequest();
-
-
-            //TODO : 지워야함, 목소리로 테스트 못하니까 텍스트로 테스트 메시지를 보내본다
-            aiRequest.setQuery("I wanna call");
-
-            new AsyncTask<AIRequest, Void, AIResponse>() {
-                @Override
-                protected AIResponse doInBackground(AIRequest... requests) {
-                    final AIRequest request = requests[0];
-                    try {
-                        //aiDataService.request 로  query 를 날린다.
-                        final AIResponse response = aiDataService.request(aiRequest);
-                        return response;
-                    } catch (AIServiceException e) {
-                        e.printStackTrace();
-                    }
-                    return null;
-                }
-                @Override
-                protected void onPostExecute(AIResponse aiResponse) {
-                    if (aiResponse != null) {
-                        // process aiResponse here
-                        Log.e("gary", aiResponse.getResult().toString());
-                    }
-                }
-            }.execute(aiRequest);
         }
         catch (SecurityException e){
             e.printStackTrace();
         }
-
 ////////////////////////////////////////////
+
+        //앱 시작하면서 날씨 초기화
+        Initialize();
+
+
+
+        //jason 초기화
+        jasonBrain = new JasonBrain(getApplicationContext());
+        jason = new Jason(getApplicationContext());
     }
 
     class msgHandle extends Handler{
@@ -355,160 +329,184 @@ public class MainActivity extends UnityPlayerActivity{
                         protected void onPostExecute(AIResponse aiResponse) {
                             if (aiResponse != null) {
                                 // process aiResponse here
-                                Log.e("gary", aiResponse.getResult().toString());
+                                String answer = aiResponse.getResult().getFulfillment().getSpeech();
+                                jason.say(answer);
+                                Log.e("gary ai response", answer);
+
+                                String action = aiResponse.getResult().getAction();
+                                //api.ai 로 부터 온 응답이 call 관련이면
+                                switch (action){
+                                    case "reask":
+                                        //결과값을 그대로 말해준다
+                                        jason.say(aiResponse.getResult().getFulfillment().getSpeech());
+                                        break;
+                                    case "search_call_list":
+                                        //주소록 찾기
+                                        String target = aiResponse.getResult().getResolvedQuery();
+                                        String result = jasonBrain.searchContact(target);
+                                        if(result.startsWith("OK")){
+                                            jason.makeCall(result.substring(2)); // OK 는 제거
+                                        }
+                                        else{
+                                            jason.say(result); // 못 찾았다고 알려줌
+                                        }
+                                        break;
+                                    case "message":
+                                        break;
+                                }
                             }
                         }
                     }.execute(aiRequest);
 
 
 
-                    //두 번째 이상의 음성인식인지 확인
-                    switch (status){
-                        //전화 대상을 청취할 때
-                        case 1:
-                            //대상을 주소록에서 찾는다
-                            targetContact = getPhoneNumber(userMessage, getApplicationContext());
-
-                            //주소록에서 찾을 수 없음
-                            if(targetContact.equals("Unsaved")){
-                                String jasonReply = userMessage + "를 찾을 수 없습니다";
-
-                                //음성 전달
-                                jasonSays(jasonReply);
-                                //유니티로 텍스트 날리기
-                                UnityPlayer.UnitySendMessage(UnityObjName, UnityMsg, jasonReply);
-                            }
-                            //주소록에서 찾을 수 있음
-                            else{
-                                //검색한 연락처를 통해서 전화를 건다
-                                Intent intent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:"+targetContact));
-                                try {
-                                    startActivity(intent);
-                                }catch(SecurityException e){
-                                    e.printStackTrace();
-                                }
-                            }
-                            //완료했으므로 상태를 초기로 만든다
-                            status = 0;
-                            return;
-                        //메시지 대상을 청취할 떄
-                        case 2:
-                            targetContact = getPhoneNumber(userMessage, getApplicationContext());
-                            //주소록에서 찾을 수 없음
-                            if(targetContact.equals("Unsaved")){
-                                String jasonReply = userMessage + "를 찾을 수 없습니다";
-                                //음성 전달
-                                jasonSays(jasonReply);
-                                //유니티로 텍스트 날리기
-                                UnityPlayer.UnitySendMessage(UnityObjName, UnityMsg, jasonReply);
-                                //완료했으므로 상태를 초기로 만든다
-                                status = 0;
-                            }
-                            else{
-                                jasonSays("뭐라고 보낼까요?");
-                                //3초 후 다시 음성인식을 한다
-                                mHandler.postDelayed(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        StartSpeechReco(recogLang);
-                                    }
-                                }, 3000);
-                                status = 3;
-                            }
-                            return;
-                        //문자 내용 청취할 때
-                        case 3:
-                            PendingIntent sentIntent = PendingIntent.getBroadcast(MainActivity.this, 0, new Intent("SMS_SENT_ACTION"), 0);
-                            PendingIntent deliveredIntent = PendingIntent.getBroadcast(MainActivity.this, 0, new Intent("SMS_DELIVERED_ACTION"), 0);
-
-                            registerReceiver(new BroadcastReceiver() {
-                                @Override
-                                public void onReceive(Context context, Intent intent) {
-                                    switch(getResultCode()){
-                                        case Activity.RESULT_OK:
-                                            // 전송 성공
-                                            Toast.makeText(MainActivity.this, "전송 완료", Toast.LENGTH_SHORT).show();
-                                            break;
-                                        case SmsManager.RESULT_ERROR_GENERIC_FAILURE:
-                                            // 전송 실패
-                                            Toast.makeText(MainActivity.this, "전송 실패", Toast.LENGTH_SHORT).show();
-                                            break;
-                                        case SmsManager.RESULT_ERROR_NO_SERVICE:
-                                            // 서비스 지역 아님
-                                            Toast.makeText(MainActivity.this, "서비스 지역이 아닙니다", Toast.LENGTH_SHORT).show();
-                                            break;
-                                        case SmsManager.RESULT_ERROR_RADIO_OFF:
-                                            // 무선 꺼짐
-                                            Toast.makeText(MainActivity.this, "무선(Radio)가 꺼져있습니다", Toast.LENGTH_SHORT).show();
-                                            break;
-                                        case SmsManager.RESULT_ERROR_NULL_PDU:
-                                            // PDU 실패
-                                            Toast.makeText(MainActivity.this, "PDU Null", Toast.LENGTH_SHORT).show();
-                                            break;
-                                    }
-                                }
-                            }, new IntentFilter("SMS_SENT_ACTION"));
-
-                            registerReceiver(new BroadcastReceiver() {
-                                @Override
-                                public void onReceive(Context context, Intent intent) {
-                                    switch (getResultCode()){
-                                        case Activity.RESULT_OK:
-                                            // 도착 완료
-                                            Toast.makeText(MainActivity.this, "SMS 도착 완료", Toast.LENGTH_SHORT).show();
-                                            break;
-                                        case Activity.RESULT_CANCELED:
-                                            // 도착 안됨
-                                            Toast.makeText(MainActivity.this, "SMS 도착 실패", Toast.LENGTH_SHORT).show();
-                                            break;
-                                    }
-                                }
-                            }, new IntentFilter("SMS_DELIVERED_ACTION"));
-
-                            Log.e("textmeshmessage", (String)matches.get(0));
-                            SmsManager sms = SmsManager.getDefault();
-                            sms.sendTextMessage(targetContact, null, userMessage, sentIntent, deliveredIntent);
-
-                            status = 0;
-                            return;
-                    }
+//                    //두 번째 이상의 음성인식인지 확인
+//                    switch (status){
+//                        //전화 대상을 청취할 때
+//                        case 1:
+//                            //대상을 주소록에서 찾는다
+//                            targetContact = getPhoneNumber(userMessage, getApplicationContext());
+//
+//                            //주소록에서 찾을 수 없음
+//                            if(targetContact.equals("Unsaved")){
+//                                String jasonReply = userMessage + "를 찾을 수 없습니다";
+//
+//                                //음성 전달
+//                                jasonSays(jasonReply);
+//                                //유니티로 텍스트 날리기
+//                                UnityPlayer.UnitySendMessage(UnityObjName, UnityMsg, jasonReply);
+//                            }
+//                            //주소록에서 찾을 수 있음
+//                            else{
+//                                //검색한 연락처를 통해서 전화를 건다
+//                                Intent intent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:"+targetContact));
+//                                try {
+//                                    startActivity(intent);
+//                                }catch(SecurityException e){
+//                                    e.printStackTrace();
+//                                }
+//                            }
+//                            //완료했으므로 상태를 초기로 만든다
+//                            status = 0;
+//                            return;
+//                        //메시지 대상을 청취할 떄
+//                        case 2:
+//                            targetContact = getPhoneNumber(userMessage, getApplicationContext());
+//                            //주소록에서 찾을 수 없음
+//                            if(targetContact.equals("Unsaved")){
+//                                String jasonReply = userMessage + "를 찾을 수 없습니다";
+//                                //음성 전달
+//                                jasonSays(jasonReply);
+//                                //유니티로 텍스트 날리기
+//                                UnityPlayer.UnitySendMessage(UnityObjName, UnityMsg, jasonReply);
+//                                //완료했으므로 상태를 초기로 만든다
+//                                status = 0;
+//                            }
+//                            else{
+//                                jasonSays("뭐라고 보낼까요?");
+//                                //3초 후 다시 음성인식을 한다
+//                                mHandler.postDelayed(new Runnable() {
+//                                    @Override
+//                                    public void run() {
+//                                        StartSpeechReco(recogLang);
+//                                    }
+//                                }, 3000);
+//                                status = 3;
+//                            }
+//                            return;
+//                        //문자 내용 청취할 때
+//                        case 3:
+//                            PendingIntent sentIntent = PendingIntent.getBroadcast(MainActivity.this, 0, new Intent("SMS_SENT_ACTION"), 0);
+//                            PendingIntent deliveredIntent = PendingIntent.getBroadcast(MainActivity.this, 0, new Intent("SMS_DELIVERED_ACTION"), 0);
+//
+//                            registerReceiver(new BroadcastReceiver() {
+//                                @Override
+//                                public void onReceive(Context context, Intent intent) {
+//                                    switch(getResultCode()){
+//                                        case Activity.RESULT_OK:
+//                                            // 전송 성공
+//                                            Toast.makeText(MainActivity.this, "전송 완료", Toast.LENGTH_SHORT).show();
+//                                            break;
+//                                        case SmsManager.RESULT_ERROR_GENERIC_FAILURE:
+//                                            // 전송 실패
+//                                            Toast.makeText(MainActivity.this, "전송 실패", Toast.LENGTH_SHORT).show();
+//                                            break;
+//                                        case SmsManager.RESULT_ERROR_NO_SERVICE:
+//                                            // 서비스 지역 아님
+//                                            Toast.makeText(MainActivity.this, "서비스 지역이 아닙니다", Toast.LENGTH_SHORT).show();
+//                                            break;
+//                                        case SmsManager.RESULT_ERROR_RADIO_OFF:
+//                                            // 무선 꺼짐
+//                                            Toast.makeText(MainActivity.this, "무선(Radio)가 꺼져있습니다", Toast.LENGTH_SHORT).show();
+//                                            break;
+//                                        case SmsManager.RESULT_ERROR_NULL_PDU:
+//                                            // PDU 실패
+//                                            Toast.makeText(MainActivity.this, "PDU Null", Toast.LENGTH_SHORT).show();
+//                                            break;
+//                                    }
+//                                }
+//                            }, new IntentFilter("SMS_SENT_ACTION"));
+//
+//                            registerReceiver(new BroadcastReceiver() {
+//                                @Override
+//                                public void onReceive(Context context, Intent intent) {
+//                                    switch (getResultCode()){
+//                                        case Activity.RESULT_OK:
+//                                            // 도착 완료
+//                                            Toast.makeText(MainActivity.this, "SMS 도착 완료", Toast.LENGTH_SHORT).show();
+//                                            break;
+//                                        case Activity.RESULT_CANCELED:
+//                                            // 도착 안됨
+//                                            Toast.makeText(MainActivity.this, "SMS 도착 실패", Toast.LENGTH_SHORT).show();
+//                                            break;
+//                                    }
+//                                }
+//                            }, new IntentFilter("SMS_DELIVERED_ACTION"));
+//
+//                            Log.e("textmeshmessage", (String)matches.get(0));
+//                            SmsManager sms = SmsManager.getDefault();
+//                            sms.sendTextMessage(targetContact, null, userMessage, sentIntent, deliveredIntent);
+//
+//                            status = 0;
+//                            return;
+//                    }
 
                     //첫번째 청취
-                    switch(userMessage){
-                        case "call":
-                            //string res 에서 가져오면 에러가 발생한다
-//                            Log.e("Jason", getResources().getString(R.string.voice_call_ask1));
-                            jasonSays("누구에게 전화를 거실겁니까?");
-
-                            //전화 대상 청취모드로 바꿈
-                            status = 1;
-
-                            //3초 후 다시 음성인식
-                            mHandler.postDelayed(new Runnable() {
-                                @Override
-                                public void run() {
-                                    StartSpeechReco("ko");
-                                }
-                            }, 3000);
-                            break;
-                        case "message":
-                            jasonSays("누구에게 메시지를 보내실겁니까?");
-                            status = 2;
-
-                            //메시지 전송 대상 청취모드로 바꿈
-                            mHandler.postDelayed(new Runnable() {
-                                @Override
-                                public void run() {
-                                    StartSpeechReco("ko");
-                                }
-                            }, 3000);
-                            break;
-                        //TODO : 날씨 정보를 가져와서 음성으로 알려줘야 함
-                        case "weather":
-                            //http://warguss.blogspot.kr/2016/01/openweather-2.html
-                            Initialize();
-                            break;
-                    }
+//                    switch(userMessage){
+//                        case "call":
+//                            //string res 에서 가져오면 에러가 발생한다
+////                            Log.e("Jason", getResources().getString(R.string.voice_call_ask1));
+//                            jasonSays("누구에게 전화를 거실겁니까?");
+//
+//                            //전화 대상 청취모드로 바꿈
+//                            status = 1;
+//
+//                            //3초 후 다시 음성인식
+//                            mHandler.postDelayed(new Runnable() {
+//                                @Override
+//                                public void run() {
+//                                    StartSpeechReco("ko");
+//                                }
+//                            }, 3000);
+//                            break;
+//                        case "message":
+//                            jasonSays("누구에게 메시지를 보내실겁니까?");
+//                            status = 2;
+//
+//                            //메시지 전송 대상 청취모드로 바꿈
+//                            mHandler.postDelayed(new Runnable() {
+//                                @Override
+//                                public void run() {
+//                                    StartSpeechReco("ko");
+//                                }
+//                            }, 3000);
+//                            break;
+//                        //TODO : 날씨 정보를 가져와서 음성으로 알려줘야 함
+//                        case "weather":
+//                            //http://warguss.blogspot.kr/2016/01/openweather-2.html
+//                            Initialize();
+//                            break;
+//                    }
                 }
                 catch (Exception e){
                     e.printStackTrace();
@@ -528,54 +526,54 @@ public class MainActivity extends UnityPlayerActivity{
     }; // ★ 음성인식 리스너 여기까지입니다.
 
 
-    /**
-     * 음성 변환
-     * @param txt : 음성으로 변환할 string
-     */
-    private void jasonSays(String txt){
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            ttsGreater21(txt);
-        } else {
-            ttsUnder20(txt);
-        }
-    }
+//    /**
+//     * 음성 변환
+//     * @param txt : 음성으로 변환할 string
+//     */
+//    private void jasonSays(String txt){
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+//            ttsGreater21(txt);
+//        } else {
+//            ttsUnder20(txt);
+//        }
+//    }
+//
+//    //TTS를 안드로이드 롤리팝 버전에 따라서 다르게 적용
+//    @SuppressWarnings("deprecation")
+//    private void ttsUnder20(String text) {
+//        HashMap<String, String> map = new HashMap<>();
+//        map.put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "MessageId");
+//        myTTS.speak(text, TextToSpeech.QUEUE_FLUSH, map);
+//    }
+//
+//    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+//    private void ttsGreater21(String text) {
+//        String utteranceId=this.hashCode() + "";
+//        myTTS.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId);
+//    }
 
-    //TTS를 안드로이드 롤리팝 버전에 따라서 다르게 적용
-    @SuppressWarnings("deprecation")
-    private void ttsUnder20(String text) {
-        HashMap<String, String> map = new HashMap<>();
-        map.put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "MessageId");
-        myTTS.speak(text, TextToSpeech.QUEUE_FLUSH, map);
-    }
-
-    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
-    private void ttsGreater21(String text) {
-        String utteranceId=this.hashCode() + "";
-        myTTS.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId);
-    }
-
-    /**
-     * 연락처 검색
-     * @param name : 검색어
-     * @param context
-     * @return : 결과값 (찾으면 전화번호를 string 으로, 못 찾으면 Unsaved )
-     */
-    public String getPhoneNumber(String name, Context context) {
-        String searchResult = null;
-        String selection = ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME+" like'%" + name +"%'";
-        String[] projection = new String[] { ContactsContract.CommonDataKinds.Phone.NUMBER};
-        Cursor c = context.getContentResolver().query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
-                projection, selection, null, null);
-        if(c == null) return null;
-
-        if (c.moveToFirst()) {
-            searchResult = c.getString(0);
-        }
-        c.close();
-        if(searchResult==null)
-            searchResult = "Unsaved";
-        return searchResult;
-    }
+//    /**
+//     * 연락처 검색
+//     * @param name : 검색어
+//     * @param context
+//     * @return : 결과값 (찾으면 전화번호를 string 으로, 못 찾으면 Unsaved )
+//     */
+//    public String getPhoneNumber(String name, Context context) {
+//        String searchResult = null;
+//        String selection = ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME+" like'%" + name +"%'";
+//        String[] projection = new String[] { ContactsContract.CommonDataKinds.Phone.NUMBER};
+//        Cursor c = context.getContentResolver().query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+//                projection, selection, null, null);
+//        if(c == null) return null;
+//
+//        if (c.moveToFirst()) {
+//            searchResult = c.getString(0);
+//        }
+//        c.close();
+//        if(searchResult==null)
+//            searchResult = "Unsaved";
+//        return searchResult;
+//    }
 
 
     /**
@@ -636,7 +634,7 @@ public class MainActivity extends UnityPlayerActivity{
         Log.e("gary", mData);
 
         UnityPlayer.UnitySendMessage(UnityObjName, UnityMsg, mData);
-        Toast.makeText(getApplicationContext(), mData, Toast.LENGTH_SHORT).show();
+        //Toast.makeText(getApplicationContext(), mData, Toast.LENGTH_SHORT).show();
         return mData;
     }
 
@@ -678,7 +676,8 @@ public class MainActivity extends UnityPlayerActivity{
     }
 
     public Handler handler = new Handler(){
-        @Override      public void handleMessage(Message msg) {
+        @Override
+        public void handleMessage(Message msg) {
             super.handleMessage(msg);
             switch(msg.what){
                 case THREAD_HANDLER_SUCCESS_INFO :
