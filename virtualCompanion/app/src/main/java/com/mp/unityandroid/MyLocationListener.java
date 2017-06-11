@@ -69,8 +69,7 @@ public class MyLocationListener implements LocationListener {
         String cityName = null;
         Geocoder gcd = new Geocoder(context, Locale.getDefault());
         try {
-            addresses = gcd.getFromLocation(latitude,
-                    longtitude, 1);
+            addresses = gcd.getFromLocation(latitude,  longtitude, 1);
             if (addresses.size() > 0) {
                 cityName = addresses.get(0).getLocality();
             }
