@@ -106,25 +106,6 @@ public class MainActivity extends UnityPlayerActivity{
             mRecognizer = SpeechRecognizer.createSpeechRecognizer(context);
             mRecognizer.setRecognitionListener(listener);
         }
-        //Log.e("TAGGER", "OnCreate");
-
-//        //TTS 를 등록한다
-//        myTTS = new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
-//            @Override
-//            public void onInit(int status) {
-//                if (status != TextToSpeech.ERROR) {
-//                    //myTTS.setLanguage(Locale.ENGLISH); //언어 설정 영어
-//                    myTTS.setLanguage(Locale.ENGLISH); //언어 설정 한국어
-//
-//                    //목소리 톤 설정 - 0 에 가까울수록 저음이 나는데 듣기 이상함
-//                    //myTTS.setPitch(0.5f);
-//
-//                    //말하기 속도 0에 가까울수록 느림
-//                    myTTS.setSpeechRate(1.0f);
-//                }
-//            }
-//        });
-
 
         //위치정보를 가져온다
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE); //위치정보 매니저를 가져옴
@@ -306,7 +287,7 @@ public class MainActivity extends UnityPlayerActivity{
                     String userMessage = (String)matches.get(0);
 
                     //유니티 UI 에 텍스트를 띄워줌
-                    UnityPlayer.UnitySendMessage(UnityObjName, UnitySTTresult,userMessage);
+                    UnityPlayer.UnitySendMessage(UnityObjName, UnitySTTresult, userMessage);
 
                     //TODO : api.ai 로 전송
                     aiRequest.setQuery(userMessage);
@@ -526,56 +507,6 @@ public class MainActivity extends UnityPlayerActivity{
     }; // ★ 음성인식 리스너 여기까지입니다.
 
 
-//    /**
-//     * 음성 변환
-//     * @param txt : 음성으로 변환할 string
-//     */
-//    private void jasonSays(String txt){
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-//            ttsGreater21(txt);
-//        } else {
-//            ttsUnder20(txt);
-//        }
-//    }
-//
-//    //TTS를 안드로이드 롤리팝 버전에 따라서 다르게 적용
-//    @SuppressWarnings("deprecation")
-//    private void ttsUnder20(String text) {
-//        HashMap<String, String> map = new HashMap<>();
-//        map.put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "MessageId");
-//        myTTS.speak(text, TextToSpeech.QUEUE_FLUSH, map);
-//    }
-//
-//    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
-//    private void ttsGreater21(String text) {
-//        String utteranceId=this.hashCode() + "";
-//        myTTS.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId);
-//    }
-
-//    /**
-//     * 연락처 검색
-//     * @param name : 검색어
-//     * @param context
-//     * @return : 결과값 (찾으면 전화번호를 string 으로, 못 찾으면 Unsaved )
-//     */
-//    public String getPhoneNumber(String name, Context context) {
-//        String searchResult = null;
-//        String selection = ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME+" like'%" + name +"%'";
-//        String[] projection = new String[] { ContactsContract.CommonDataKinds.Phone.NUMBER};
-//        Cursor c = context.getContentResolver().query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
-//                projection, selection, null, null);
-//        if(c == null) return null;
-//
-//        if (c.moveToFirst()) {
-//            searchResult = c.getString(0);
-//        }
-//        c.close();
-//        if(searchResult==null)
-//            searchResult = "Unsaved";
-//        return searchResult;
-//    }
-
-
     /**
      * 날씨 모듈 초기화
      */
@@ -597,24 +528,6 @@ public class MainActivity extends UnityPlayerActivity{
      */
     public String PrintValue()
     {
-//        String mData = "";
-//        for(int i = 0; i < mWeatherInfomation.size(); i ++)
-//        {
-//            mData = mData + mWeatherInfomation.get(i).getWeather_Day() + "\r\n"
-//                    +  mWeatherInfomation.get(i).getWeather_Name() + "\r\n"
-//                    +  mWeatherInfomation.get(i).getClouds_Sort()
-//                    +  " /Cloud amount: " + mWeatherInfomation.get(i).getClouds_Value()
-//                    +  mWeatherInfomation.get(i).getClouds_Per() +"\r\n"
-//                    +  mWeatherInfomation.get(i).getWind_Name()
-//                    +  " /WindSpeed: " + mWeatherInfomation.get(i).getWind_Speed() + " mps" + "\r\n"
-//                    +  "Max: " + mWeatherInfomation.get(i).getTemp_Max() + "℃"
-//                    +  " /Min: " + mWeatherInfomation.get(i).getTemp_Min() + "℃" +"\r\n"
-//                    +  "Humidity: " + mWeatherInfomation.get(i).getHumidity() + "%";
-//
-//            mData = mData + "\r\n" + "----------------------------------------------" + "\r\n";
-//        }
-
-
         //split 하려고 문자열을 좀 바꿈
         String mData = "";
         for (int i = 0; i < mWeatherInfomation.size(); i++) {
