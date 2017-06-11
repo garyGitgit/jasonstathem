@@ -8,9 +8,10 @@ android {
 //        applicationId "com.mp.unityandroid"
         minSdkVersion 18
         targetSdkVersion 25
-//        versionCode 1
-//        versionName "1.0"
+        versionCode 1
+        versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        multiDexEnabled true
     }
     buildTypes {
         release {
@@ -25,11 +26,25 @@ dependencies {
     androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
         exclude group: 'com.android.support', module: 'support-annotations'
     })
+    //api.ai SDK 사용하기 위한 library 와 해당 dependency
+    //    compile 'ai.api:libai:1.4.8'
+    //    compile 'ai.api:sdk:2.0.5@aar'
+    // api.ai SDK dependencies
+    //    compile 'com.android.support:appcompat-v7:23.2.1'
+    //    compile 'com.google.code.gson:gson:2.7.1'
+    //    compile 'com.google.code.gson:gson:2.8.0'
+    //    compile 'commons-io:commons-io:2.5'
+    //    compile 'com.google.code.gson:gson:2.7'
+    //    compile 'commons-io:commons-io:2.4'
+    //ClassNotFoundException 대비
+    //    compile group: 'ai.api', name: 'sdk', version: '1.2.0'
     compile 'com.android.support:appcompat-v7:25.3.1'
     compile 'com.android.support.constraint:constraint-layout:1.0.2'
     testCompile 'junit:junit:4.12'
     compile files('libs/classes.jar')
-
+    compile files('libs/ailib-sdk-1.5.0.jar')
+    compile files('libs/gson-2.3.1.jar')
+    compile files('libs/commons-io-2.5.jar')
 }
 task deleteOldJar(type: Delete) {
     delete 'release/forUnity.jar'
@@ -38,9 +53,34 @@ task exportJar(type: Copy) {
     from('build/intermediates/bundles/default/')
     into('release/') // 요기 경로는 APP아래 build폴더입니다.
     //into('C:\\Users\\OneStar\\Desktop\\SmartSecretary\\SmartSecretary\\Assets\\Plugins\\Android');
-    into('/Users/macbook/Desktop/2017-1/학부생연구원/project/jasonstathem/SmartSecretary_v2/SmartSecretary/Assets/Plugins/Android')
+    //into('/Users/macbook/Desktop/2017-1/학부생연구원/project/jasonstathem/SmartSecretary/SmartSecretary/Assets/Plugins/Android')
     include('classes.jar')
     rename('classes.jar', 'forUnity.jar')
 }
 exportJar.dependsOn(deleteOldJar, build)
+
+android {
+    lintOptions {
+        abortOnError false
+    }
+}
+repositories {
+    maven {
+        url "https://repo1.maven.org/maven2/"
+    }
+}
+
+android {
+    packagingOptions {
+        exclude 'META-INF/NOTICE' // will not include NOTICE file
+        exclude 'META-INF/LICENSE' // will not include LICENSE file
+        // as noted by @Vishnuvathsan you may also need to include
+        // variations on the file name. It depends on your dependencies.
+        // Some other common variations on notice and license file names
+        exclude 'META-INF/notice'
+        exclude 'META-INF/notice.txt'
+        exclude 'META-INF/license'
+        exclude 'META-INF/license.txt'
+    }
+}
 

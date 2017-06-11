@@ -9,11 +9,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.database.Cursor;
-import android.location.Address;
-import android.location.Geocoder;
-import android.location.Location;
 import android.location.LocationManager;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -30,13 +28,18 @@ import android.widget.Toast;
 import com.unity3d.player.UnityPlayer;
 import com.unity3d.player.UnityPlayerActivity;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Locale;
 
-public class MainActivity extends UnityPlayerActivity {
+import ai.api.AIDataService;
+import ai.api.AIServiceException;
+import ai.api.AIConfiguration;
+import ai.api.AIService;
+import ai.api.model.AIRequest;
+import ai.api.model.AIResponse;
+
+public class MainActivity extends UnityPlayerActivity{
 
     // 유니티에서 스크립트가 붙을 오브젝트 이름
     private String UnityObjName = "pluginUnity";
@@ -55,6 +58,7 @@ public class MainActivity extends UnityPlayerActivity {
 
     // "en-US" : 미국영어 / "ko" : 한국어 /  "zh-CN" : 중국어 /  "ja" : 일본어
     private String recogLang = "en-US"; //디폴트 언어
+    private String ACCESS_TOKEN = "58ff38b68acb4c699c2f96226d7c4dee";
 
     //weather API
     public static final int THREAD_HANDLER_SUCCESS_INFO = 1;
@@ -86,13 +90,20 @@ public class MainActivity extends UnityPlayerActivity {
     //전화 / 메시지 할 대상
     String targetContact = "";
 
+    //api.ai 변수
+    private AIService aiService;
+    AIDataService aiDataService;
+    AIRequest aiRequest;
+
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         //UI 가 없음
         //setContentView(R.layout.activity_main);
-        Toast.makeText(getApplicationContext(), "앱을 시작합니다", Toast.LENGTH_SHORT).show();
+        Toast.makeText(getApplicationContext(), "Starting app", Toast.LENGTH_SHORT).show();
 
         //핸들러 붙이고
         mHandler = new msgHandle();
@@ -126,62 +137,66 @@ public class MainActivity extends UnityPlayerActivity {
         //위치정보를 가져온다
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE); //위치정보 매니저를 가져옴
         if(locationManager == null) Log.e("gary", "location manager is null");
-        //LocationListener locationListener = new MyLocationListener(getApplicationContext());
-
-        //permission 체크
-        try {
-            Location location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-            Log.e("gary", "Latitude : " + Double.toString(location.getLatitude()));
-            Log.e("gary", "Longitude : " + Double.toString(location.getLongitude()));
-
-
-
-
-            //도시 알아오기
-            List<Address> addresses;
-            String cityName = null;
-            Geocoder gcd = new Geocoder(context, Locale.getDefault());
-            try {
-                addresses = gcd.getFromLocation(location.getLatitude(),
-                        location.getLongitude(), 1);
-                if (addresses.size() > 0) {
-                    cityName = addresses.get(0).getLocality();
-                }
-            }
-            catch (IOException e) {
-                e.printStackTrace();
-            }
-            String s = location.getLongitude() + "\n" + location.getLatitude() + "\n\nMy Current City is: "
-                    + cityName;
-            Log.e("gary", s);
-        }catch(SecurityException e){
-            e.printStackTrace();
-            Log.e("gary", "security error : " + e.toString());
-        }
-
+        MyLocationListener locationListener = new MyLocationListener(getApplicationContext());
 
         //TODO : onLocationChanged 를 사용할 수 있는 함수인데 작동을 안해서 일단 킵
-        //locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 0, locationListener);
-        //첫번째 줄에서 에러발생
-
-        /*if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-//            ActivityCompat.requestPermissions(this,
-//                    new String[]{Manifest.permission. ACCESS_FINE_LOCATION},
-//                    99);
-//               public void onRequestPermissionsResult(int requestCode, String[] permissions,
-//                                                      int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            Toast.makeText(getApplicationContext(), "GPS 권한 설정이 필요합니다", Toast.LENGTH_SHORT).show();
-            return;
+        try{
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 1, locationListener);
         }
-        requestLocationUpdates : //GPS 제공자, 업데이트 주기 milsec, 업데이트 거리 미터*/
+        catch (SecurityException e){
+            e.printStackTrace();
+        }
 
+
+
+//////////api ai 를 사용하기 위한 초기화 /////////
+        //인터넷 퍼미션 에러가 있는지 체크
+        try{
+            //내 API 토큰을 등록 : 여기서부터 에러 : 빌드를 할 때 유니티로 하는데, 라이브러리를 직접 import 하지않아서 그런듯
+            final AIConfiguration config = new AIConfiguration(ACCESS_TOKEN,TELEPHONY_SUBSCRIPTION_SERVICE,
+                    ai.api.AIConfiguration.SupportedLanguages.English,
+                    ai.api.AIConfiguration.RecognitionEngine.System);
+
+            aiService = AIService.getService(this, config);
+
+            //사용자 정의 AI Listener 를 생성
+            aiService.setListener(new MyAIListener());
+            //요청할 변수 객체화
+            aiDataService = new AIDataService(getApplicationContext(), config);
+            aiRequest = new AIRequest();
+
+
+            //TODO : 지워야함, 목소리로 테스트 못하니까 텍스트로 테스트 메시지를 보내본다
+            aiRequest.setQuery("I wanna call");
+
+            new AsyncTask<AIRequest, Void, AIResponse>() {
+                @Override
+                protected AIResponse doInBackground(AIRequest... requests) {
+                    final AIRequest request = requests[0];
+                    try {
+                        //aiDataService.request 로  query 를 날린다.
+                        final AIResponse response = aiDataService.request(aiRequest);
+                        return response;
+                    } catch (AIServiceException e) {
+                        e.printStackTrace();
+                    }
+                    return null;
+                }
+                @Override
+                protected void onPostExecute(AIResponse aiResponse) {
+                    if (aiResponse != null) {
+                        // process aiResponse here
+                        Log.e("gary", aiResponse.getResult().toString());
+                    }
+                }
+            }.execute(aiRequest);
+        }
+        catch (SecurityException e){
+            e.printStackTrace();
+        }
+
+////////////////////////////////////////////
     }
-
 
     class msgHandle extends Handler{
         @Override
@@ -311,12 +326,41 @@ public class MainActivity extends UnityPlayerActivity {
         public void onResults(Bundle bundle) {
             mHandler.removeMessages(0);
             ArrayList matches = bundle.getStringArrayList("results_recognition");
+
             if(matches != null){
                 try{
                     String userMessage = (String)matches.get(0);
 
                     //유니티 UI 에 텍스트를 띄워줌
                     UnityPlayer.UnitySendMessage(UnityObjName, UnitySTTresult,userMessage);
+
+                    //TODO : api.ai 로 전송
+                    aiRequest.setQuery(userMessage);
+
+                    //setQuery 를 한 다음 aiDataService.request 를 해야한다
+                    new AsyncTask<AIRequest, Void, AIResponse>() {
+                        @Override
+                        protected AIResponse doInBackground(AIRequest... requests) {
+                            final AIRequest request = requests[0];
+                            try {
+                                //aiDataService.request 로  query 를 날린다.
+                                final AIResponse response = aiDataService.request(aiRequest);
+                                return response;
+                            } catch (AIServiceException e) {
+                                e.printStackTrace();
+                            }
+                            return null;
+                        }
+                        @Override
+                        protected void onPostExecute(AIResponse aiResponse) {
+                            if (aiResponse != null) {
+                                // process aiResponse here
+                                Log.e("gary", aiResponse.getResult().toString());
+                            }
+                        }
+                    }.execute(aiRequest);
+
+
 
                     //두 번째 이상의 음성인식인지 확인
                     switch (status){
@@ -366,7 +410,7 @@ public class MainActivity extends UnityPlayerActivity {
                                 mHandler.postDelayed(new Runnable() {
                                     @Override
                                     public void run() {
-                                        StartSpeechReco("ko");
+                                        StartSpeechReco(recogLang);
                                     }
                                 }, 3000);
                                 status = 3;
@@ -431,7 +475,7 @@ public class MainActivity extends UnityPlayerActivity {
 
                     //첫번째 청취
                     switch(userMessage){
-                        case "전화":
+                        case "call":
                             //string res 에서 가져오면 에러가 발생한다
 //                            Log.e("Jason", getResources().getString(R.string.voice_call_ask1));
                             jasonSays("누구에게 전화를 거실겁니까?");
@@ -447,7 +491,7 @@ public class MainActivity extends UnityPlayerActivity {
                                 }
                             }, 3000);
                             break;
-                        case "메시지":
+                        case "message":
                             jasonSays("누구에게 메시지를 보내실겁니까?");
                             status = 2;
 
@@ -460,7 +504,7 @@ public class MainActivity extends UnityPlayerActivity {
                             }, 3000);
                             break;
                         //TODO : 날씨 정보를 가져와서 음성으로 알려줘야 함
-                        case "날씨":
+                        case "weather":
                             //http://warguss.blogspot.kr/2016/01/openweather-2.html
                             Initialize();
                             break;
@@ -555,22 +599,44 @@ public class MainActivity extends UnityPlayerActivity {
      */
     public String PrintValue()
     {
+//        String mData = "";
+//        for(int i = 0; i < mWeatherInfomation.size(); i ++)
+//        {
+//            mData = mData + mWeatherInfomation.get(i).getWeather_Day() + "\r\n"
+//                    +  mWeatherInfomation.get(i).getWeather_Name() + "\r\n"
+//                    +  mWeatherInfomation.get(i).getClouds_Sort()
+//                    +  " /Cloud amount: " + mWeatherInfomation.get(i).getClouds_Value()
+//                    +  mWeatherInfomation.get(i).getClouds_Per() +"\r\n"
+//                    +  mWeatherInfomation.get(i).getWind_Name()
+//                    +  " /WindSpeed: " + mWeatherInfomation.get(i).getWind_Speed() + " mps" + "\r\n"
+//                    +  "Max: " + mWeatherInfomation.get(i).getTemp_Max() + "℃"
+//                    +  " /Min: " + mWeatherInfomation.get(i).getTemp_Min() + "℃" +"\r\n"
+//                    +  "Humidity: " + mWeatherInfomation.get(i).getHumidity() + "%";
+//
+//            mData = mData + "\r\n" + "----------------------------------------------" + "\r\n";
+//        }
+
+
+        //split 하려고 문자열을 좀 바꿈
         String mData = "";
-        for(int i = 0; i < mWeatherInfomation.size(); i ++)
-        {
-            mData = mData + mWeatherInfomation.get(i).getWeather_Day() + "\r\n"
-                    +  mWeatherInfomation.get(i).getWeather_Name() + "\r\n"
-                    +  mWeatherInfomation.get(i).getClouds_Sort()
-                    +  " /Cloud amount: " + mWeatherInfomation.get(i).getClouds_Value()
-                    +  mWeatherInfomation.get(i).getClouds_Per() +"\r\n"
-                    +  mWeatherInfomation.get(i).getWind_Name()
-                    +  " /WindSpeed: " + mWeatherInfomation.get(i).getWind_Speed() + " mps" + "\r\n"
-                    +  "Max: " + mWeatherInfomation.get(i).getTemp_Max() + "℃"
-                    +  " /Min: " + mWeatherInfomation.get(i).getTemp_Min() + "℃" +"\r\n"
-                    +  "Humidity: " + mWeatherInfomation.get(i).getHumidity() + "%";
+        for (int i = 0; i < mWeatherInfomation.size(); i++) {
+            mData = mData + "weather/" + mWeatherInfomation.get(i).getWeather_Day()
+                    + "/" + mWeatherInfomation.get(i).getWeather_Name()
+                    + "/" + mWeatherInfomation.get(i).getClouds_Sort()
+                    + "/" + mWeatherInfomation.get(i).getClouds_Value()
+                    + "/" + mWeatherInfomation.get(i).getClouds_Per()
+                    + "/" + mWeatherInfomation.get(i).getWind_Name()
+                    + "/" + mWeatherInfomation.get(i).getWind_Speed()/* + " mps"*/
+                    + "/" + mWeatherInfomation.get(i).getTemp_Max()/* + "℃"*/
+                    + "/" + mWeatherInfomation.get(i).getTemp_Min()/* + "℃"*/
+                    + "/" + mWeatherInfomation.get(i).getHumidity()/* + "%"*/;
 
             mData = mData + "\r\n" + "----------------------------------------------" + "\r\n";
         }
+        Log.e("gary", mData);
+
+        UnityPlayer.UnitySendMessage(UnityObjName, UnityMsg, mData);
+        Toast.makeText(getApplicationContext(), mData, Toast.LENGTH_SHORT).show();
         return mData;
     }
 

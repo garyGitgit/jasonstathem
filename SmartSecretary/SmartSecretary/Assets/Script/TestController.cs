@@ -7,7 +7,6 @@ public class TestController : MonoBehaviour {
     public float rotateSpeed = 100f;
     public float jumpPower = 5f;
     public Transform tr;
-    //public GameObject rain;
 
     float horizontal, vertical;
 
@@ -19,8 +18,6 @@ public class TestController : MonoBehaviour {
         rb = GetComponent<Rigidbody>();
         tr = GetComponent<Transform>();
         animator = GetComponent<Animator>();
-        //rain = GameObject.FindGameObjectWithTag("Rain");
-        //rain.SetActive(false);
     }
 
     void Start()
@@ -31,8 +28,16 @@ public class TestController : MonoBehaviour {
     {
         horizontal = Input.GetAxis("Horizontal");
         vertical = Input.GetAxis("Vertical");
+    }
 
-        //tr.Rotate(Vector3.up * Time.deltaTime * rotateSpeed * Input.GetAxis("Mouse X"));
+    public void AnimateInitialize()
+    {
+        animator.SetBool("isRain", false);
+        animator.SetBool("isCalling", false);
+        animator.SetBool("isMessage", false);
+        animator.SetBool("isWeather", false);
+        animator.SetBool("isHot", false);
+
     }
 
 	public void AnimationUpdate(string message)
@@ -46,31 +51,37 @@ public class TestController : MonoBehaviour {
                 animator.SetBool("isMessage", false);
                 animator.SetBool("isWeather", false);
                 animator.SetBool("isRain", false);
+                animator.SetBool("isHot", false);
                 break;
             case "message":
                 animator.SetBool("isMessage", true);
                 animator.SetBool("isCalling", false);
                 animator.SetBool("isWeather", false);
                 animator.SetBool("isRain", false);
+                animator.SetBool("isHot", false);
                 break;
             case "weather":
                 animator.SetBool("isWeather", true);
                 animator.SetBool("isCalling", false);
                 animator.SetBool("isMessage", false);
                 animator.SetBool("isRain", false);
+                animator.SetBool("isHot", false);
                 break;
             case "raining":
-                //rain.SetActive(true);
                 animator.SetBool("isRain", true);
                 animator.SetBool("isWeather", false);
                 animator.SetBool("isCalling", false);
                 animator.SetBool("isMessage", false);
+                animator.SetBool("isHot", false);
                 break;
-            default:
+            case "hot":
+                animator.SetBool("isHot", true);
                 animator.SetBool("isRain", false);
                 animator.SetBool("isCalling", false);
                 animator.SetBool("isMessage", false);
                 animator.SetBool("isWeather", false);
+                break;
+            default:
                 break;
         }
 	}

@@ -114,8 +114,8 @@ namespace DigitalRuby.RainMaker
 
         private void CheckForRainChange()
         {
-            if (lastRainIntensityValue != RainIntensity)
-            {
+            //if (lastRainIntensityValue != RainIntensity)
+            //{
                 lastRainIntensityValue = RainIntensity;
                 if (RainIntensity <= 0.01f)
                 {
@@ -198,7 +198,7 @@ namespace DigitalRuby.RainMaker
                         e.rateOverTime = rate;
                     }
                 }
-            }
+            //}
         }
 
         protected virtual void Start()
