@@ -259,3 +259,5 @@ $RECYCLE.BIN/
 *.lnk
 
 # End of https://www.gitignore.io/api/macos,unity,windows,android,androidstudio
+
+SmartSecretary/SmartSecretary/Library/metadata/
