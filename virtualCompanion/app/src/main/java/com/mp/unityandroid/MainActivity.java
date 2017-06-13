@@ -30,11 +30,11 @@ import ai.api.model.AIResponse;
 public class MainActivity extends UnityPlayerActivity{
 
     // 유니티에서 스크립트가 붙을 오브젝트 이름
-    private String UnityObjName = "pluginUnity";
+    public static String UnityObjName = "pluginUnity";
     // 유니티에서 에러메세지 받을 함수 이름
-    private String UnityMsg = "msgUnity";
+    public static String UnityMsg = "msgUnity";
     //유니티에서 음성인식 결과받을 함수 이름
-    private String UnitySTTresult = "sttUnity";
+    public static String UnitySTTresult = "sttUnity";
     // 핸들러 관련
     private final int STTSTART = 1;
     private final int STTREADY = 2;
@@ -48,8 +48,8 @@ public class MainActivity extends UnityPlayerActivity{
     private String recogLang = "en-US"; //디폴트 언어
     private String ACCESS_TOKEN = "58ff38b68acb4c699c2f96226d7c4dee";
 
-    //weather API
-    public static final int THREAD_HANDLER_SUCCESS_INFO = 1;
+//    //weather API
+//    public static final int THREAD_HANDLER_SUCCESS_INFO = 1;
 
     //날씨 매니저
     ForeCastManager mForeCast;
@@ -86,6 +86,9 @@ public class MainActivity extends UnityPlayerActivity{
     //JasonBrain
     JasonBrain jasonBrain;
     Jason jason;
+
+    //message 변수
+    boolean isWaitingMessage = false;
 
 
 
@@ -143,14 +146,12 @@ public class MainActivity extends UnityPlayerActivity{
         }
 ////////////////////////////////////////////
 
-        //앱 시작하면서 날씨 초기화
-        Initialize();
-
-
-
         //jason 초기화
         jasonBrain = new JasonBrain(getApplicationContext());
-        jason = new Jason(getApplicationContext());
+        jason = Jason.getInstance();
+        jason.init(getApplicationContext());
+        //앱 시작하면서 날씨 초기화
+        //Initialize();
     }
 
     class msgHandle extends Handler{
@@ -289,6 +290,17 @@ public class MainActivity extends UnityPlayerActivity{
                     //유니티 UI 에 텍스트를 띄워줌
                     UnityPlayer.UnitySendMessage(UnityObjName, UnitySTTresult, userMessage);
 
+
+                    //메시지 보내려고 대기한거였으면 메시지를 보낸다
+                    if(isWaitingMessage){
+                        if(!userMessage.equals("cancel"))
+                            jason.sendMessage(targetContact, userMessage);
+                        else
+                            jason.say("Sending message is cancelled");
+                        isWaitingMessage = false;
+                        return;
+                    }
+
                     //TODO : api.ai 로 전송
                     aiRequest.setQuery(userMessage);
 
@@ -315,26 +327,120 @@ public class MainActivity extends UnityPlayerActivity{
                                 Log.e("gary ai response", answer);
 
                                 String action = aiResponse.getResult().getAction();
-                                //api.ai 로 부터 온 응답이 call 관련이면
+
+                                String target = "";
+                                //action 0 : 전화, action 1 : 메시지
                                 switch (action){
-                                    case "reask":
-                                        //결과값을 그대로 말해준다
-                                        jason.say(aiResponse.getResult().getFulfillment().getSpeech());
-                                        break;
-                                    case "search_call_list":
-                                        //주소록 찾기
-                                        String target = aiResponse.getResult().getResolvedQuery();
-                                        String result = jasonBrain.searchContact(target);
-                                        if(result.startsWith("OK")){
-                                            jason.makeCall(result.substring(2)); // OK 는 제거
+                                    case "0":
+                                        //action 을 가져와서 어떤 응답 종류인지 확인한다
+                                        if(aiResponse.getResult().getParameters().get("target_name") != null){
+                                            target = aiResponse.getResult().getParameters().get("target_name").toString();
+                                            Log.e("gary what is target ", target);
+                                            //target_name 이 누군지 알면 주소록에서 찾는다
+                                            if(!target.equals("")){
+                                                final String parsedTarget = target.substring(1, target.length()-1);
+
+                                                //1.5초 있다가 검색 시작 후 전화걸기
+                                                mHandler.postDelayed(new Runnable() {
+                                                    @Override
+                                                    public void run() {
+                                                        final String result = jasonBrain.searchContact(parsedTarget);
+                                                        if(result.startsWith("OK")){
+                                                            jason.makeCall(result.substring(2));
+                                                        }
+                                                        else{
+                                                            jason.say("Sorry, I can't find " + parsedTarget + " on your list");
+                                                        }
+                                                    }
+                                                }, 2500);
+                                            }
+                                            //target 없이 말한 경우
                                         }
                                         else{
-                                            jason.say(result); // 못 찾았다고 알려줌
+                                            mHandler.postDelayed(new Runnable() {
+                                                @Override
+                                                public void run() {
+                                                    StartSpeechReco("en");
+                                                }
+                                            }, 2500);
                                         }
                                         break;
-                                    case "message":
+                                    case "1":
+                                        //action 을 가져와서 어떤 응답 종류인지 확인한다
+                                        if(aiResponse.getResult().getParameters().get("target_name") != null){
+                                            target = aiResponse.getResult().getParameters().get("target_name").toString();
+                                            //target_name 이 누군지 알면 주소록에서 찾는다
+                                            if(!target.equals("")){
+
+                                                final String parsedTarget = target.substring(1, target.length()-1);
+
+                                                //1.5초 있다가 검색 시작 후 되묻기
+                                                mHandler.postDelayed(new Runnable() {
+                                                    @Override
+                                                    public void run() {
+                                                        final String result = jasonBrain.searchContact(parsedTarget);
+                                                        if(result.startsWith("OK")){
+                                                            //jason.makeCall(result.substring(2));
+                                                            targetContact = result.substring(2);
+                                                            jason.say("What message do I send?");
+                                                            mHandler.postDelayed(new Runnable() {
+                                                                @Override
+                                                                public void run() {
+                                                                    StartSpeechReco("en");
+                                                                    isWaitingMessage = true;
+                                                                }
+                                                            }, 2500);
+                                                        }
+                                                        else{
+                                                            jason.say("Sorry, I can't find " + parsedTarget + " on your list");
+                                                        }
+                                                    }
+                                                }, 2500);
+                                            }
+                                        }
+                                        //target 없이 말한 경우
+                                        else{
+                                            mHandler.postDelayed(new Runnable() {
+                                                @Override
+                                                public void run() {
+                                                    StartSpeechReco("en");
+                                                }
+                                            }, 2500);
+                                        }
+                                        break;
+                                    //weather
+                                    case "2":
+                                        jason.getWeather(MainActivity.this);
                                         break;
                                 }
+
+                                //api.ai 로 부터 온 응답이 call 관련이면
+//                                switch (status){
+//                                    case 0:
+//                                        //결과값을 그대로 말해준다
+//                                        jason.say(aiResponse.getResult().getFulfillment().getSpeech());
+//                                        status = 1;
+//                                        break;
+//                                    //TODO : 여기 시나리오에 따라서
+//                                    case 1:
+//                                        //주소록 찾기
+//                                        final String result = jasonBrain.searchContact(target);
+//                                        if(result.startsWith("OK")){
+//                                            jason.say("I'm gonna call " + target); // 못 찾았다고 알려줌
+//                                            mHandler.postDelayed(new Runnable() {
+//                                                @Override
+//                                                public void run() {
+//                                                    jason.makeCall(result.substring(2)); // OK 는 제거
+//                                                }
+//                                            }, 2000);
+//
+//                                        }
+//                                        else{
+//                                            jason.say(result); // 못 찾았다고 알려줌
+//                                        }
+//                                        status = 0;
+//                                        break;
+//                                }
                             }
                         }
                     }.execute(aiRequest);
@@ -507,113 +613,113 @@ public class MainActivity extends UnityPlayerActivity{
     }; // ★ 음성인식 리스너 여기까지입니다.
 
 
-    /**
-     * 날씨 모듈 초기화
-     */
-    public void Initialize()
-    {
-        mWeatherInfomation = new ArrayList<>();
-        mThis = this;
-        //위도와 경도를 설정
-        mForeCast = new ForeCastManager(Double.toString(MyLocationListener.getLongtitude()),Double.toString(MyLocationListener.getLatitude()),mThis);
-        mForeCast.run();
-    }
-
-    /**
-     * 날씨 정보에 대한 결과값 출력
-     * clear sky - 날씨 상태
-     * cloud amount - 구름의 양
-     * min, max temperature - 최저, 최저 기온
-     * @return 결과값
-     */
-    public String PrintValue()
-    {
-        //split 하려고 문자열을 좀 바꿈
-        String mData = "";
-        for (int i = 0; i < mWeatherInfomation.size(); i++) {
-            mData = mData + "weather/" + mWeatherInfomation.get(i).getWeather_Day()
-                    + "/" + mWeatherInfomation.get(i).getWeather_Name()
-                    + "/" + mWeatherInfomation.get(i).getClouds_Sort()
-                    + "/" + mWeatherInfomation.get(i).getClouds_Value()
-                    + "/" + mWeatherInfomation.get(i).getClouds_Per()
-                    + "/" + mWeatherInfomation.get(i).getWind_Name()
-                    + "/" + mWeatherInfomation.get(i).getWind_Speed()/* + " mps"*/
-                    + "/" + mWeatherInfomation.get(i).getTemp_Max()/* + "℃"*/
-                    + "/" + mWeatherInfomation.get(i).getTemp_Min()/* + "℃"*/
-                    + "/" + mWeatherInfomation.get(i).getHumidity()/* + "%"*/;
-
-            mData = mData + "\r\n" + "----------------------------------------------" + "\r\n";
-        }
-        Log.e("gary", mData);
-
-        UnityPlayer.UnitySendMessage(UnityObjName, UnityMsg, mData);
-        //Toast.makeText(getApplicationContext(), mData, Toast.LENGTH_SHORT).show();
-        return mData;
-    }
-
-    public void DataChangedToHangeul()
-    {
-        for(int i = 0 ; i <mWeatherInfomation.size(); i ++)
-        {
-            WeatherToHangeul mHangeul = new WeatherToHangeul(mWeatherInfomation.get(i));
-            mWeatherInfomation.set(i,mHangeul.getHangeulWeather());
-        }
-    }
-
-    /**
-     * 날씨 데이터를 가져옴
-     */
-    public void DataToInformation()
-    {
-        for(int i = 0; i < mWeatherData.size(); i++)
-        {
-            mWeatherInfomation.add(new WeatherInfo(
-                    String.valueOf(mWeatherData.get(i).get("weather_Name")),
-                    String.valueOf(mWeatherData.get(i).get("weather_Number")),
-                    String.valueOf(mWeatherData.get(i).get("weather_Much")),
-                    String.valueOf(mWeatherData.get(i).get("weather_Type")),
-                    String.valueOf(mWeatherData.get(i).get("wind_Direction")),
-                    String.valueOf(mWeatherData.get(i).get("wind_SortNumber")),
-                    String.valueOf(mWeatherData.get(i).get("wind_SortCode")),
-                    String.valueOf(mWeatherData.get(i).get("wind_Speed")),
-                    String.valueOf(mWeatherData.get(i).get("wind_Name")),
-                    String.valueOf(mWeatherData.get(i).get("temp_Min")),
-                    String.valueOf(mWeatherData.get(i).get("temp_Max")),
-                    String.valueOf(mWeatherData.get(i).get("humidity")),
-                    String.valueOf(mWeatherData.get(i).get("Clouds_Value")),
-                    String.valueOf(mWeatherData.get(i).get("Clouds_Sort")),
-                    String.valueOf(mWeatherData.get(i).get("Clouds_Per")),
-                    String.valueOf(mWeatherData.get(i).get("day"))
-            ));
-        }
-    }
-
-    public Handler handler = new Handler(){
-        @Override
-        public void handleMessage(Message msg) {
-            super.handleMessage(msg);
-            switch(msg.what){
-                case THREAD_HANDLER_SUCCESS_INFO :
-                    mForeCast.getmWeather();
-                    mWeatherData = mForeCast.getmWeather();
-                    String data = "";
-
-                    if(mWeatherData.size() ==0)
-                        data = "데이터가 없습니다";
-                    else {
-                        DataToInformation(); // 자료 클래스로 저장,
-
-                        data = PrintValue();
-                        //DataChangedToHangeul();
-                        //data = data + PrintValue();
-                    }
-
-                    Log.d("Weather", "Weather: " + data);
-                    //send weather info to Unity
-                    break;
-                default:
-                    break;
-            }
-        }
-    };
+//    /**
+//     * 날씨 모듈 초기화
+//     */
+//    public void Initialize()
+//    {
+//        mWeatherInfomation = new ArrayList<>();
+//        mThis = this;
+//        //위도와 경도를 설정
+//        mForeCast = new ForeCastManager(Double.toString(MyLocationListener.getLongtitude()),Double.toString(MyLocationListener.getLatitude()),mThis);
+//        mForeCast.run();
+//    }
+//
+//    /**
+//     * 날씨 정보에 대한 결과값 출력
+//     * clear sky - 날씨 상태
+//     * cloud amount - 구름의 양
+//     * min, max temperature - 최저, 최저 기온
+//     * @return 결과값
+//     */
+//    public String PrintValue()
+//    {
+//        //split 하려고 문자열을 좀 바꿈
+//        String mData = "";
+//        for (int i = 0; i < mWeatherInfomation.size(); i++) {
+//            mData = mData + "weather/" + mWeatherInfomation.get(i).getWeather_Day()
+//                    + "/" + mWeatherInfomation.get(i).getWeather_Name()
+//                    + "/" + mWeatherInfomation.get(i).getClouds_Sort()
+//                    + "/" + mWeatherInfomation.get(i).getClouds_Value()
+//                    + "/" + mWeatherInfomation.get(i).getClouds_Per()
+//                    + "/" + mWeatherInfomation.get(i).getWind_Name()
+//                    + "/" + mWeatherInfomation.get(i).getWind_Speed()/* + " mps"*/
+//                    + "/" + mWeatherInfomation.get(i).getTemp_Max()/* + "℃"*/
+//                    + "/" + mWeatherInfomation.get(i).getTemp_Min()/* + "℃"*/
+//                    + "/" + mWeatherInfomation.get(i).getHumidity()/* + "%"*/;
+//
+//            mData = mData + "\r\n" + "----------------------------------------------" + "\r\n";
+//        }
+//        Log.e("gary", mData);
+//
+//        UnityPlayer.UnitySendMessage(UnityObjName, UnityMsg, mData);
+//        //Toast.makeText(getApplicationContext(), mData, Toast.LENGTH_SHORT).show();
+//        return mData;
+//    }
+//
+//    public void DataChangedToHangeul()
+//    {
+//        for(int i = 0 ; i <mWeatherInfomation.size(); i ++)
+//        {
+//            WeatherToHangeul mHangeul = new WeatherToHangeul(mWeatherInfomation.get(i));
+//            mWeatherInfomation.set(i,mHangeul.getHangeulWeather());
+//        }
+//    }
+//
+//    /**
+//     * 날씨 데이터를 가져옴
+//     */
+//    public void DataToInformation()
+//    {
+//        for(int i = 0; i < mWeatherData.size(); i++)
+//        {
+//            mWeatherInfomation.add(new WeatherInfo(
+//                    String.valueOf(mWeatherData.get(i).get("weather_Name")),
+//                    String.valueOf(mWeatherData.get(i).get("weather_Number")),
+//                    String.valueOf(mWeatherData.get(i).get("weather_Much")),
+//                    String.valueOf(mWeatherData.get(i).get("weather_Type")),
+//                    String.valueOf(mWeatherData.get(i).get("wind_Direction")),
+//                    String.valueOf(mWeatherData.get(i).get("wind_SortNumber")),
+//                    String.valueOf(mWeatherData.get(i).get("wind_SortCode")),
+//                    String.valueOf(mWeatherData.get(i).get("wind_Speed")),
+//                    String.valueOf(mWeatherData.get(i).get("wind_Name")),
+//                    String.valueOf(mWeatherData.get(i).get("temp_Min")),
+//                    String.valueOf(mWeatherData.get(i).get("temp_Max")),
+//                    String.valueOf(mWeatherData.get(i).get("humidity")),
+//                    String.valueOf(mWeatherData.get(i).get("Clouds_Value")),
+//                    String.valueOf(mWeatherData.get(i).get("Clouds_Sort")),
+//                    String.valueOf(mWeatherData.get(i).get("Clouds_Per")),
+//                    String.valueOf(mWeatherData.get(i).get("day"))
+//            ));
+//        }
+//    }
+//
+//    public Handler handler = new Handler(){
+//        @Override
+//        public void handleMessage(Message msg) {
+//            super.handleMessage(msg);
+//            switch(msg.what){
+//                case THREAD_HANDLER_SUCCESS_INFO :
+//                    mForeCast.getmWeather();
+//                    mWeatherData = mForeCast.getmWeather();
+//                    String data = "";
+//
+//                    if(mWeatherData.size() ==0)
+//                        data = "데이터가 없습니다";
+//                    else {
+//                        DataToInformation(); // 자료 클래스로 저장,
+//
+//                        data = PrintValue();
+//                        //DataChangedToHangeul();
+//                        //data = data + PrintValue();
+//                    }
+//
+//                    Log.d("Weather", "Weather: " + data);
+//                    //send weather info to Unity
+//                    break;
+//                default:
+//                    break;
+//            }
+//        }
+//    };
 }

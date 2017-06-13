@@ -116,7 +116,7 @@ public class ForeCastManager extends Thread {
             StrictMode.setThreadPolicy(policy);
         }
         mWeatehr = GetOpenWeather(lon, lat);
-        mContext.handler.sendEmptyMessage(mContext.THREAD_HANDLER_SUCCESS_INFO);
+        Jason.getInstance().handler.sendEmptyMessage(Jason.THREAD_HANDLER_SUCCESS_INFO);
         //Thread 작업 종료, UI 작업을 위해 MainHandler에 Message보냄    }
     }
 }
