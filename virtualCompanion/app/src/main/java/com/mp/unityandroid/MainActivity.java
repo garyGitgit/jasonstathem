@@ -29,6 +29,8 @@ import ai.api.model.AIResponse;
 
 public class MainActivity extends UnityPlayerActivity{
 
+    private RemoteSensorManager remoteSensorManager;
+
     // 유니티에서 스크립트가 붙을 오브젝트 이름
     public static String UnityObjName = "pluginUnity";
     // 유니티에서 에러메세지 받을 함수 이름
@@ -47,6 +49,7 @@ public class MainActivity extends UnityPlayerActivity{
     // "en-US" : 미국영어 / "ko" : 한국어 /  "zh-CN" : 중국어 /  "ja" : 일본어
     private String recogLang = "en-US"; //디폴트 언어
     private String ACCESS_TOKEN = "58ff38b68acb4c699c2f96226d7c4dee";
+
 
 //    //weather API
 //    public static final int THREAD_HANDLER_SUCCESS_INFO = 1;
@@ -96,6 +99,8 @@ public class MainActivity extends UnityPlayerActivity{
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+
+        remoteSensorManager = RemoteSensorManager.getInstance(this);
         //UI 가 없음
         //setContentView(R.layout.activity_main);
         Toast.makeText(getApplicationContext(), "Starting app", Toast.LENGTH_SHORT).show();
@@ -152,6 +157,21 @@ public class MainActivity extends UnityPlayerActivity{
         jason.init(getApplicationContext());
         //앱 시작하면서 날씨 초기화
         //Initialize();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        remoteSensorManager.startMeasurement();
+        System.out.println("start measurement");
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        remoteSensorManager.stopMeasurement();
+        System.out.println("stop measurement");
+
     }
 
     class msgHandle extends Handler{

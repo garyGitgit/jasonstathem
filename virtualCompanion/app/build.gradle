@@ -38,6 +38,12 @@ dependencies {
 //        compile 'commons-io:commons-io:2.4'
     //ClassNotFoundException 대비
     //    compile group: 'ai.api', name: 'sdk', version: '1.2.0'
+
+    wearApp project(':sensor')
+
+    compile 'com.google.android.gms:play-services-wearable:7.5.0'
+    compile 'com.google.android.gms:play-services-analytics:7.5.0'
+
     compile 'com.android.support:appcompat-v7:25.3.1'
     compile 'com.android.support.constraint:constraint-layout:1.0.2'
     testCompile 'junit:junit:4.12'
@@ -53,7 +59,7 @@ task exportJar(type: Copy) {
     from('build/intermediates/bundles/default/')
     into('release/') // 요기 경로는 APP아래 build폴더입니다.
     //into('C:\\Users\\OneStar\\Desktop\\SmartSecretary\\SmartSecretary\\Assets\\Plugins\\Android');
-    into('/Users/macbook/Desktop/2017-1/학부생연구원/project/jasonstathem/SmartSecretary/SmartSecretary/Assets/Plugins/Android')
+    //into('/Users/macbook/Desktop/2017-1/학부생연구원/project/jasonstathem/SmartSecretary/SmartSecretary/Assets/Plugins/Android')
     include('classes.jar')
     rename('classes.jar', 'main.jar')
 }

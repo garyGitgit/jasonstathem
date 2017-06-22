@@ -21,9 +21,6 @@ import ai.api.model.Status;
 public class MyAIListener implements AIListener {
     public static String TAG = "gary";
 
-
-
-
     @Override
     public void onResult(AIResponse response) {
 

@@ -3,7 +3,9 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
-      <module fileurl="file://$PROJECT_DIR$/virtualCompanion.iml" filepath="$PROJECT_DIR$/virtualCompanion.iml" />
+      <module fileurl="file://$PROJECT_DIR$/sensor/sensor.iml" filepath="$PROJECT_DIR$/sensor/sensor.iml" />
+      <module fileurl="file://$PROJECT_DIR$/shared/shared.iml" filepath="$PROJECT_DIR$/shared/shared.iml" />
+      <module fileurl="file://$PROJECT_DIR$/virtualCompanion_test_activity_recog.iml" filepath="$PROJECT_DIR$/virtualCompanion_test_activity_recog.iml" />
     </modules>
   </component>
 </project>
