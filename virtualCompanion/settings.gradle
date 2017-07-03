@@ -1,1 +1,1 @@
-include ':app', ':sensor', ':shared'
+include ':app', ':sensor'

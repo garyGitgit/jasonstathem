@@ -62,8 +62,8 @@ public class SpeechRecognition : MonoBehaviour {
 	public void Call_STTstart()
     {
         print ("speech recognizer : call_sttstart");
-		//PluginManager.Getinstance().call_androidSTT("en-US");
-        PluginManager.Getinstance().call_androidSTT("ko");
+		PluginManager.Getinstance().call_androidSTT("en-US");
+        //PluginManager.Getinstance().call_androidSTT("ko");
 
         blueboy.GetComponent<TestController>().AnimateInitialize();
     }

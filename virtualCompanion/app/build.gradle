@@ -59,7 +59,7 @@ task exportJar(type: Copy) {
     from('build/intermediates/bundles/default/')
     into('release/') // 요기 경로는 APP아래 build폴더입니다.
     //into('C:\\Users\\OneStar\\Desktop\\SmartSecretary\\SmartSecretary\\Assets\\Plugins\\Android');
-    //into('/Users/macbook/Desktop/2017-1/학부생연구원/project/jasonstathem/SmartSecretary/SmartSecretary/Assets/Plugins/Android')
+    into('/Users/macbook/Desktop/2017-1/학부생연구원/project/jasonstathem/SmartSecretary/Assets/Plugins/Android')
     include('classes.jar')
     rename('classes.jar', 'main.jar')
 }

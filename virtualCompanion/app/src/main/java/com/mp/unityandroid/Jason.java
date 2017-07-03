@@ -12,6 +12,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
+import android.provider.MediaStore;
 import android.speech.tts.TextToSpeech;
 import android.telephony.SmsManager;
 import android.util.Log;
@@ -80,28 +81,28 @@ public class Jason {
     }
 
 
-
-    public Jason(Context context){
-        this.context = context;
-
-
-        //TTS 를 등록한다 (Jason 의 목소리를 초기화)
-        myTTS = new TextToSpeech(context, new TextToSpeech.OnInitListener() {
-            @Override
-            public void onInit(int status) {
-                if (status != TextToSpeech.ERROR) {
-                    //myTTS.setLanguage(Locale.ENGLISH); //언어 설정 영어
-                    myTTS.setLanguage(Locale.ENGLISH); //언어 설정 한국어
-
-                    //목소리 톤 설정 - 0 에 가까울수록 저음이 나는데 듣기 이상함
-                    //myTTS.setPitch(0.5f);
-
-                    //말하기 속도 0에 가까울수록 느림
-                    myTTS.setSpeechRate(1.0f);
-                }
-            }
-        });
-    }
+//
+//    public Jason(Context context){
+//        this.context = context;
+//
+//
+//        //TTS 를 등록한다 (Jason 의 목소리를 초기화)
+//        myTTS = new TextToSpeech(context, new TextToSpeech.OnInitListener() {
+//            @Override
+//            public void onInit(int status) {
+//                if (status != TextToSpeech.ERROR) {
+//                    //myTTS.setLanguage(Locale.ENGLISH); //언어 설정 영어
+//                    myTTS.setLanguage(Locale.ENGLISH); //언어 설정 한국어
+//
+//                    //목소리 톤 설정 - 0 에 가까울수록 저음이 나는데 듣기 이상함
+//                    //myTTS.setPitch(0.5f);
+//
+//                    //말하기 속도 0에 가까울수록 느림
+//                    myTTS.setSpeechRate(1.0f);
+//                }
+//            }
+//        });
+//    }
 
     public void makeCall(String targetContact){
         //검색한 연락처를 통해서 전화를 건다
@@ -121,7 +122,7 @@ public class Jason {
         Initialize();
     }
 
-    public void sendMessage(String targetContact, String msg){
+    public void sendSMSMessage(String targetContact, String msg){
         PendingIntent sentIntent = PendingIntent.getBroadcast(context, 0, new Intent("SMS_SENT_ACTION"), 0);
         PendingIntent deliveredIntent = PendingIntent.getBroadcast(context, 0, new Intent("SMS_DELIVERED_ACTION"), 0);
 
@@ -318,6 +319,51 @@ public class Jason {
         String utteranceId=this.hashCode() + "";
         myTTS.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId);
     }
+
+    //카메라 실행
+    public void launchCamera(){
+        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        try {
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(intent);
+        }catch(SecurityException e){
+            e.printStackTrace();
+        }
+    }
+
+    public void launchApp(String appName){
+        Log.e("gary", appName);
+        Intent intent;
+        switch (appName){
+            case "KakaoTalk":
+                intent = context.getPackageManager().getLaunchIntentForPackage("com.kakao.talk");
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(intent);
+                break;
+            case "Twitter":
+                intent = null;
+                try {
+                    // get the Twitter app if possible
+                    //context.getPackageManager().getPackageInfo("com.twitter.android", 0);
+                    //intent = new Intent(Intent.ACTION_VIEW, Uri.parse("twitter://user?user_id=sw7989@hanmail.net"));
+                    intent = context.getPackageManager().getLaunchIntentForPackage("com.twitter.android");
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                } catch (Exception e) {
+                    // no Twitter app, revert to browser
+                    //intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://twitter.com/USERID_OR_PROFILENAME"));
+                }
+                context.startActivity(intent);
+                break;
+            case "camera":
+                launchCamera();
+                break;
+            default:
+                say("I can't find the app");
+                break;
+        }
+
+    }
+
 
 
 }

@@ -34,6 +34,7 @@ public class DeviceClient {
         this.context = context;
 
         googleApiClient = new GoogleApiClient.Builder(context).addApi(Wearable.API).build();
+
         executorService = Executors.newCachedThreadPool();
     }
 

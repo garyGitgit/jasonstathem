@@ -29,6 +29,7 @@ public class MessageReceiverService extends WearableListenerService {
     @Override
     public void onMessageReceived(MessageEvent messageEvent) {
 
+
         if (messageEvent.getPath().equals(START_MEASUREMENT)) {
             startService(new Intent(this, SensorService.class));
         }

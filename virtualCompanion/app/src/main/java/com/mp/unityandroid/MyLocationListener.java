@@ -22,8 +22,9 @@ public class MyLocationListener implements LocationListener {
 
 
     Context context;
-    static double latitude = 0.0;
-    static double longtitude = 0.0;
+    //default osaka
+    static double latitude = 34.6937378;
+    static double longtitude = 135.50216509999996;
 
     public MyLocationListener(Context context){
         Log.e("gary", "create object ");
