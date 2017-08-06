@@ -5,5 +5,4 @@ jasonsatatham is a virtual companion based smartphone interface.
 
 reference : 
 http://www.uvrlab.org/isuvr/2017/main.html
-<br><br>
 
